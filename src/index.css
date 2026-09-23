@@ -408,8 +408,8 @@ button {
 
 .panel {
   padding: 20px;
-
   margin-top: 18px;
+  overflow-x: auto; /* ADD THIS LINE */
 }
 
 .panel-header {

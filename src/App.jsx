@@ -269,6 +269,18 @@ export default function App() {
             </div>
           ))}
         </div>
+
+                {/* MOBILE NAVIGATION BAR (Only shows on phones) */}
+        <div className="mobile-nav">
+          <button className="active">
+            <span></span>
+            Rankings
+          </button>
+          <button onClick={() => setShowLogin(true)}>
+            <span>🔒</span>
+            Admin
+          </button>
+        </div>
       </main>
     </div>
   )
