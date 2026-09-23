@@ -180,6 +180,14 @@ export default function App() {
       </aside>
 
       <main className="main">
+                {/* Mobile Header (Only shows on phones) */}
+        <div className="mobile-header">
+          <img src="/fc-logo.jpg" alt="177 FC Logo" />
+          <div>
+            <h2>177 FC</h2>
+            <span>STREET LEAGUE</span>
+          </div>
+        </div>
         <header className="header">
           <div>
             <span className="eyebrow">177 FC • STREET LEAGUE</span>

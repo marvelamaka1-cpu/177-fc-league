@@ -912,3 +912,40 @@ button {
     font-size: 36px;
   }
 }
+
+/* Mobile Header Styles */
+.mobile-header {
+  display: none; /* Hidden on desktop */
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mobile-header img {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.mobile-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--white);
+}
+
+.mobile-header span {
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+/* Show it only on mobile */
+@media (max-width: 720px) {
+  .mobile-header {
+    display: flex;
+  }
+}
