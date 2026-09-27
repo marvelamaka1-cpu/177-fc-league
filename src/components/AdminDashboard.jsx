@@ -27,6 +27,10 @@ export default function AdminDashboard() {
   const [potw, setPotw] = useState(null);
   const [loadingPotw, setLoadingPotw] = useState(false);
 
+  // NEW: State for adding new players
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [newPlayerJersey, setNewPlayerJersey] = useState("");
+
   useEffect(() => {
     async function loadData() {
       const { data: gwData } = await supabase
@@ -110,6 +114,37 @@ export default function AdminDashboard() {
     }
 
     setSaving(false);
+  }
+
+  // NEW: Add Player Function
+  async function addPlayer(e) {
+    e.preventDefault(); 
+    
+    if (!newPlayerName || !newPlayerJersey) {
+      setMessage("Please enter both a name and a jersey number.");
+      return;
+    }
+
+    setMessage("Adding player...");
+
+    const { error } = await supabase
+      .from("players")
+      .insert([{ name: newPlayerName, jersey_number: Number(newPlayerJersey) }]);
+
+    if (error) {
+      setMessage("Error adding player: " + error.message);
+    } else {
+      setMessage(`${newPlayerName} added to the team!`);
+      setNewPlayerName("");
+      setNewPlayerJersey("");
+      
+      // Refresh the player list immediately
+      const { data } = await supabase
+        .from("players")
+        .select("*")
+        .order("jersey_number", { ascending: true });
+      setPlayers(data || []);
+    }
   }
 
   // FIXED: Deletes stats first, then deletes the player
@@ -454,8 +489,8 @@ export default function AdminDashboard() {
 
           {message && (
             <div className="admin-message" style={{ 
-              color: message.includes("successfully") || message.includes("🏆") ? "#4ade80" : "#ff8b8b",
-              background: message.includes("successfully") || message.includes("🏆") ? "rgba(74, 222, 128, 0.1)" : "rgba(255, 139, 139, 0.1)"
+              color: message.includes("successfully") || message.includes("🏆") || message.includes("added") ? "#4ade80" : "#ff8b8b",
+              background: message.includes("successfully") || message.includes("🏆") || message.includes("added") ? "rgba(74, 222, 128, 0.1)" : "rgba(255, 139, 139, 0.1)"
             }}>
               {message}
             </div>
@@ -467,9 +502,58 @@ export default function AdminDashboard() {
           <div className="section-heading">
             <span className="eyebrow">MANAGEMENT</span>
             <h2>Manage Players</h2>
-            <p>Remove players from the league.</p>
+            <p>Add or remove players from the league.</p>
           </div>
 
+          {/* ADD NEW PLAYER FORM */}
+          <form 
+            onSubmit={addPlayer} 
+            style={{ 
+              display: "flex", 
+              gap: "10px", 
+              marginBottom: "20px", 
+              padding: "15px", 
+              background: "rgba(244, 200, 74, 0.05)", 
+              borderRadius: "8px", 
+              border: "1px solid var(--gold)",
+              flexWrap: "wrap"
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Player Name"
+              value={newPlayerName}
+              onChange={(e) => setNewPlayerName(e.target.value)}
+              style={{ flex: 2, minWidth: "150px", padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", background: "#111", color: "white" }}
+              required
+            />
+            <input
+              type="number"
+              placeholder="#"
+              value={newPlayerJersey}
+              onChange={(e) => setNewPlayerJersey(e.target.value)}
+              style={{ width: "60px", padding: "10px", borderRadius: "6px", border: "1px solid var(--border)", background: "#111", color: "white", textAlign: "center" }}
+              required
+            />
+            <button
+              type="submit"
+              style={{ 
+                flex: 1, 
+                minWidth: "100px",
+                padding: "10px", 
+                background: "var(--gold)", 
+                color: "#080808", 
+                border: "none", 
+                borderRadius: "6px", 
+                cursor: "pointer", 
+                fontWeight: "bold" 
+              }}
+            >
+              Add Player
+            </button>
+          </form>
+
+          {/* LIST OF PLAYERS TO DELETE */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "15px" }}>
             {players.map((player) => (
               <div 
