@@ -456,6 +456,51 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+
+                {/* MANAGE PLAYERS SECTION */}
+        <div className="admin-card" style={{ marginTop: '30px' }}>
+          <div className="section-heading">
+            <span className="eyebrow">MANAGEMENT</span>
+            <h2>Manage Players</h2>
+            <p>Remove players from the league.</p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
+            {players.map((player) => (
+              <div 
+                key={player.id} 
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '12px', 
+                  background: 'rgba(255,255,255,0.05)', 
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)'
+                }}
+              >
+                <span style={{ color: 'var(--white)', fontWeight: 'bold' }}>
+                  #{player.jersey_number} {player.name}
+                </span>
+                <button
+                  onClick={() => deletePlayer(player.id, player.name)}
+                  style={{ 
+                    padding: '8px 14px', 
+                    background: '#ff4444', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '6px', 
+                    cursor: 'pointer', 
+                    fontSize: '12px', 
+                    fontWeight: 'bold' 
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     </>
   );
