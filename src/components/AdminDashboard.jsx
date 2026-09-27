@@ -43,7 +43,7 @@ export default function AdminDashboard() {
       setPlayers(playerData || []);
 
       if (gwData?.length) {
-        const current = gwData.find(gw => gw.is_current) || gwData[0];
+        const current = gwData.find((gw) => gw.is_current) || gwData[0];
         setCurrentGW(current);
         setSelectedGameweek(current.id);
       }
@@ -112,33 +112,40 @@ export default function AdminDashboard() {
     setSaving(false);
   }
 
-  // NEW: Delete player stats for selected gameweek
-  async function deletePlayerStats() {
-    if (!selectedGameweek || !selectedPlayer) {
-      setMessage("Please select a gameweek and player to delete.");
+  // FIXED: Deletes stats first, then deletes the player
+  async function deletePlayer(playerId, playerName) {
+    if (!window.confirm(`Are you sure you want to delete ${playerName}?`)) {
       return;
     }
 
-    if (!window.confirm("Delete all stats for this player in this gameweek?")) {
-      return;
-    }
+    setMessage(`Deleting ${playerName}...`);
 
-    setMessage("");
-    const { error } = await supabase
+    // 1. First, delete their stats so the database doesn't block us
+    await supabase
       .from("player_gameweek_stats")
       .delete()
-      .eq("player_id", selectedPlayer)
-      .eq("gameweek_id", selectedGameweek);
+      .eq("player_id", playerId);
+
+    // 2. Now, delete the actual player
+    const { error } = await supabase
+      .from("players")
+      .delete()
+      .eq("id", playerId);
 
     if (error) {
-      setMessage("Error: " + error.message);
+      setMessage("Error deleting: " + error.message);
     } else {
-      setMessage("Stats deleted successfully!");
-      setForm(initialForm);
+      setMessage(`${playerName} deleted successfully!`);
+      
+      // Refresh the list immediately
+      const { data } = await supabase
+        .from("players")
+        .select("*")
+        .order("jersey_number", { ascending: true });
+      setPlayers(data || []);
     }
   }
 
-  // NEW: Clear ALL stats for current gameweek
   async function clearAllStats() {
     if (!currentGW) return;
     
@@ -181,7 +188,7 @@ export default function AdminDashboard() {
       setMessage("No stats found for this week. Save some performances first!");
     } else {
       setPotw(data.player);
-      setMessage(` ${data.player.name} is the Player of the Week with ${data.points} points!`);
+      setMessage(`🏆 ${data.player.name} is the Player of the Week with ${data.points} points!`);
     }
     setLoadingPotw(false);
   }
@@ -190,16 +197,15 @@ export default function AdminDashboard() {
     await supabase.auth.signOut();
   }
 
-  // Calculate next Thursday
   const getNextThursday = () => {
     const today = new Date();
     const nextThursday = new Date(today);
     nextThursday.setDate(today.getDate() + ((4 - today.getDay() + 7) % 7 || 7));
-    return nextThursday.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return nextThursday.toLocaleDateString("en-US", { 
+      weekday: "long", 
+      year: "numeric", 
+      month: "short", 
+      day: "numeric" 
     });
   };
 
@@ -208,17 +214,17 @@ export default function AdminDashboard() {
       <button
         onClick={handleLogout}
         style={{ 
-          position: 'absolute', 
-          top: '20px', 
-          right: '20px', 
-          padding: '10px 20px', 
-          backgroundColor: '#ff4444', 
-          color: 'white', 
-          border: 'none', 
-          borderRadius: '8px', 
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          fontSize: '12px'
+          position: "absolute", 
+          top: "20px", 
+          right: "20px", 
+          padding: "10px 20px", 
+          backgroundColor: "#ff4444", 
+          color: "white", 
+          border: "none", 
+          borderRadius: "8px", 
+          cursor: "pointer",
+          fontWeight: "bold",
+          fontSize: "12px"
         }}
       >
         Logout
@@ -227,41 +233,40 @@ export default function AdminDashboard() {
       <section className="admin-page">
         
         {/* DATE DISPLAY */}
-        <div className="admin-card" style={{ marginBottom: '20px', background: 'linear-gradient(145deg, rgba(244, 200, 74, 0.1), rgba(20, 18, 14, 0.96))' }}>
-          <div style={{ textAlign: 'center', padding: '15px' }}>
-            <span style={{ color: 'var(--muted)', fontSize: '12px', display: 'block', marginBottom: '5px' }}>NEXT GAMEWEEK</span>
-            <strong style={{ color: 'var(--gold)', fontSize: '20px' }}>{getNextThursday()}</strong>
-            <span style={{ color: 'var(--muted)', fontSize: '11px', marginLeft: '10px' }}>(Every Thursday)</span>
+        <div className="admin-card" style={{ marginBottom: "20px", background: "linear-gradient(145deg, rgba(244, 200, 74, 0.1), rgba(20, 18, 14, 0.96))" }}>
+          <div style={{ textAlign: "center", padding: "15px" }}>
+            <span style={{ color: "var(--muted)", fontSize: "12px", display: "block", marginBottom: "5px" }}>NEXT GAMEWEEK</span>
+            <strong style={{ color: "var(--gold)", fontSize: "20px" }}>{getNextThursday()}</strong>
           </div>
         </div>
 
         {/* PLAYER OF THE WEEK CARD */}
-        <div className="admin-card" style={{ marginBottom: '20px', borderColor: 'var(--gold)' }}>
+        <div className="admin-card" style={{ marginBottom: "20px", borderColor: "var(--gold)" }}>
           <div className="section-heading">
             <span className="eyebrow">AUTOMATION</span>
             <h2>Player of the Week</h2>
           </div>
 
           {potw ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <h3 style={{ fontSize: '28px', color: 'var(--gold)', margin: '0 0 10px 0' }}>
-                🏆 {potw.name} <span style={{ fontSize: '16px', color: 'var(--muted)' }}>#{potw.jersey_number}</span>
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <h3 style={{ fontSize: "28px", color: "var(--gold)", margin: "0 0 10px 0" }}>
+                🏆 {potw.name} <span style={{ fontSize: "16px", color: "var(--muted)" }}>#{potw.jersey_number}</span>
               </h3>
-              <p style={{ color: 'var(--muted)', marginBottom: '15px' }}>Highest points for the selected gameweek!</p>
+              <p style={{ color: "var(--muted)", marginBottom: "15px" }}>Highest points for the selected gameweek!</p>
               <button 
                 onClick={() => setPotw(null)} 
-                style={{ padding: '10px 20px', backgroundColor: 'var(--panel-2)', color: 'var(--white)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer' }}
+                style={{ padding: "10px 20px", backgroundColor: "var(--panel-2)", color: "var(--white)", border: "1px solid var(--border)", borderRadius: "8px", cursor: "pointer" }}
               >
                 Calculate Again
               </button>
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <p style={{ color: 'var(--muted)', marginBottom: '15px' }}>Select a gameweek above, then click below to find the winner.</p>
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <p style={{ color: "var(--muted)", marginBottom: "15px" }}>Select a gameweek above, then click below to find the winner.</p>
               <button 
                 onClick={calculatePotw} 
                 disabled={loadingPotw}
-                style={{ padding: '12px 24px', backgroundColor: 'var(--gold)', color: '#080808', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '900', fontSize: '14px' }}
+                style={{ padding: "12px 24px", backgroundColor: "var(--gold)", color: "#080808", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "900", fontSize: "14px" }}
               >
                 {loadingPotw ? "Calculating..." : "Find Player of the Week"}
               </button>
@@ -402,7 +407,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* ACTION BUTTONS */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '18px' }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "18px" }}>
             <button
               className="save-performance"
               onClick={savePerformance}
@@ -412,19 +417,19 @@ export default function AdminDashboard() {
             </button>
             
             <button
-              onClick={deletePlayerStats}
+              onClick={() => deletePlayer(selectedPlayer, players.find(p => p.id === selectedPlayer)?.name || "Player")}
               style={{
-                padding: '15px',
-                border: '1px solid #ff4444',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(255, 68, 68, 0.1)',
-                color: '#ff4444',
-                fontWeight: '900',
-                cursor: 'pointer',
-                fontSize: '13px'
+                padding: "15px",
+                border: "1px solid #ff4444",
+                borderRadius: "12px",
+                backgroundColor: "rgba(255, 68, 68, 0.1)",
+                color: "#ff4444",
+                fontWeight: "900",
+                cursor: "pointer",
+                fontSize: "13px"
               }}
             >
-              DELETE STATS
+              DELETE PLAYER
             </button>
           </div>
 
@@ -432,67 +437,67 @@ export default function AdminDashboard() {
           <button
             onClick={clearAllStats}
             style={{
-              width: '100%',
-              padding: '12px',
-              marginTop: '10px',
-              border: '1px solid var(--border)',
-              borderRadius: '12px',
-              backgroundColor: 'transparent',
-              color: 'var(--muted)',
-              fontWeight: '700',
-              cursor: 'pointer',
-              fontSize: '12px'
+              width: "100%",
+              padding: "12px",
+              marginTop: "10px",
+              border: "1px solid var(--border)",
+              borderRadius: "12px",
+              backgroundColor: "transparent",
+              color: "var(--muted)",
+              fontWeight: "700",
+              cursor: "pointer",
+              fontSize: "12px"
             }}
           >
-            🗑️ Clear All Stats for {currentGW?.name || 'Current GW'}
+            🗑️ Clear All Stats for {currentGW?.name || "Current GW"}
           </button>
 
           {message && (
             <div className="admin-message" style={{ 
-              color: message.includes("successfully") || message.includes("🏆") ? '#4ade80' : '#ff8b8b',
-              background: message.includes("successfully") || message.includes("🏆") ? 'rgba(74, 222, 128, 0.1)' : 'rgba(255, 139, 139, 0.1)'
+              color: message.includes("successfully") || message.includes("🏆") ? "#4ade80" : "#ff8b8b",
+              background: message.includes("successfully") || message.includes("🏆") ? "rgba(74, 222, 128, 0.1)" : "rgba(255, 139, 139, 0.1)"
             }}>
               {message}
             </div>
           )}
         </div>
 
-                {/* MANAGE PLAYERS SECTION */}
-        <div className="admin-card" style={{ marginTop: '30px' }}>
+        {/* MANAGE PLAYERS SECTION */}
+        <div className="admin-card" style={{ marginTop: "30px" }}>
           <div className="section-heading">
             <span className="eyebrow">MANAGEMENT</span>
             <h2>Manage Players</h2>
             <p>Remove players from the league.</p>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "15px" }}>
             {players.map((player) => (
               <div 
                 key={player.id} 
                 style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '12px', 
-                  background: 'rgba(255,255,255,0.05)', 
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)'
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  padding: "12px", 
+                  background: "rgba(255,255,255,0.05)", 
+                  borderRadius: "8px",
+                  border: "1px solid var(--border)"
                 }}
               >
-                <span style={{ color: 'var(--white)', fontWeight: 'bold' }}>
+                <span style={{ color: "var(--white)", fontWeight: "bold" }}>
                   #{player.jersey_number} {player.name}
                 </span>
                 <button
                   onClick={() => deletePlayer(player.id, player.name)}
                   style={{ 
-                    padding: '8px 14px', 
-                    background: '#ff4444', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '6px', 
-                    cursor: 'pointer', 
-                    fontSize: '12px', 
-                    fontWeight: 'bold' 
+                    padding: "8px 14px", 
+                    background: "#ff4444", 
+                    color: "white", 
+                    border: "none", 
+                    borderRadius: "6px", 
+                    cursor: "pointer", 
+                    fontSize: "12px", 
+                    fontWeight: "bold" 
                   }}
                 >
                   Delete
